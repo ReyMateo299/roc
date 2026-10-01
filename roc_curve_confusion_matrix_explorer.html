@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confusion Matrix & ROC Curve Interactive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Remove arrows from number inputs for a cleaner look */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
+
+    <div class="max-w-7xl w-full">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Confusion Matrix & ROC Curve Explorer</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                Adjust the counts in the 2x2 confusion matrices below to see how they impact the True Positive Rate (TPR), False Positive Rate (FPR), and the resulting ROC curve and Area Under Curve (AUC).
+            </p>
+        </header>
+
+        <div class="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+            
+            <!-- Top Panel: ROC Chart & Metrics -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">ROC Curve Analysis</h2>
+                
+                <!-- Metrics Display -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-blue-50 rounded-xl p-3 border border-blue-100 flex flex-col items-center sm:items-start sm:flex-row sm:justify-between">
+                        <div>
+                            <div class="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wider">Model A AUC</div>
+                            <div class="text-2xl font-bold text-blue-700 leading-none" id="auc-a">0.000</div>
+                        </div>
+                        <div class="text-[11px] text-blue-600 mt-2 sm:mt-0 sm:text-right font-medium">
+                            <div id="tpr-a-text">TPR: 0.00</div>
+                            <div id="fpr-a-text">FPR: 0.00</div>
+                        </div>
+                    </div>
+                    <div class="bg-orange-50 rounded-xl p-3 border border-orange-100 flex flex-col items-center sm:items-start sm:flex-row sm:justify-between">
+                        <div>
+                            <div class="text-xs text-orange-600 font-semibold mb-1 uppercase tracking-wider">Model B AUC</div>
+                            <div class="text-2xl font-bold text-orange-700 leading-none" id="auc-b">0.000</div>
+                        </div>
+                        <div class="text-[11px] text-orange-600 mt-2 sm:mt-0 sm:text-right font-medium">
+                            <div id="tpr-b-text">TPR: 0.00</div>
+                            <div id="fpr-b-text">FPR: 0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="flex-grow relative min-h-[350px]">
+                    <canvas id="rocChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Bottom Panel: Confusion Matrices Side-by-Side -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Model A (Compact) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-3 h-3 rounded-full bg-blue-600"></div>
+                        <h2 class="text-lg font-bold text-gray-800">Model A</h2>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-center border-collapse">
+                            <thead>
+                                <tr>
+                                    <th class="p-1 border-b border-r border-transparent"></th>
+                                    <th class="p-1 border-b border-gray-200 font-semibold text-blue-800 bg-blue-50 rounded-tl-md">Pred Pos</th>
+                                    <th class="p-1 border-b border-gray-200 font-semibold text-blue-800 bg-blue-50 rounded-tr-md">Pred Neg</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th class="p-1 border-r border-gray-200 font-semibold text-blue-800 bg-blue-50 text-left align-middle rounded-tl-md rounded-bl-md whitespace-nowrap">Actual Pos</th>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">TP</label>
+                                        <input type="number" id="a-tp" value="80" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                    </td>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">FN</label>
+                                        <input type="number" id="a-fn" value="20" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="p-1 border-r border-gray-200 font-semibold text-blue-800 bg-blue-50 text-left align-middle rounded-tr-md rounded-br-md whitespace-nowrap">Actual Neg</th>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">FP</label>
+                                        <input type="number" id="a-fp" value="10" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                    </td>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">TN</label>
+                                        <input type="number" id="a-tn" value="90" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Model B (Compact) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-3 h-3 rounded-full bg-orange-500"></div>
+                        <h2 class="text-lg font-bold text-gray-800">Model B</h2>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs text-center border-collapse">
+                            <thead>
+                                <tr>
+                                    <th class="p-1 border-b border-r border-transparent"></th>
+                                    <th class="p-1 border-b border-gray-200 font-semibold text-orange-800 bg-orange-50 rounded-tl-md">Pred Pos</th>
+                                    <th class="p-1 border-b border-gray-200 font-semibold text-orange-800 bg-orange-50 rounded-tr-md">Pred Neg</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th class="p-1 border-r border-gray-200 font-semibold text-orange-800 bg-orange-50 text-left align-middle rounded-tl-md rounded-bl-md whitespace-nowrap">Actual Pos</th>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">TP</label>
+                                        <input type="number" id="b-tp" value="60" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors">
+                                    </td>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">FN</label>
+                                        <input type="number" id="b-fn" value="40" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="p-1 border-r border-gray-200 font-semibold text-orange-800 bg-orange-50 text-left align-middle rounded-tr-md rounded-br-md whitespace-nowrap">Actual Neg</th>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">FP</label>
+                                        <input type="number" id="b-fp" value="30" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors">
+                                    </td>
+                                    <td class="p-1.5 border border-gray-100 bg-gray-50/50">
+                                        <label class="block text-[10px] text-gray-500 font-medium mb-0.5">TN</label>
+                                        <input type="number" id="b-tn" value="70" min="0" class="w-full h-8 text-center text-sm font-bold bg-white border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const inputs = {
+            A: {
+                tp: document.getElementById('a-tp'),
+                fn: document.getElementById('a-fn'),
+                fp: document.getElementById('a-fp'),
+                tn: document.getElementById('a-tn')
+            },
+            B: {
+                tp: document.getElementById('b-tp'),
+                fn: document.getElementById('b-fn'),
+                fp: document.getElementById('b-fp'),
+                tn: document.getElementById('b-tn')
+            }
+        };
+
+        const displays = {
+            A: {
+                auc: document.getElementById('auc-a'),
+                tpr: document.getElementById('tpr-a-text'),
+                fpr: document.getElementById('fpr-a-text')
+            },
+            B: {
+                auc: document.getElementById('auc-b'),
+                tpr: document.getElementById('tpr-b-text'),
+                fpr: document.getElementById('fpr-b-text')
+            }
+        };
+
+        let rocChart;
+
+        // Mathematical helper for a single operating point ROC
+        function calculateMetrics(tp, fn, fp, tn) {
+            const actualPositives = tp + fn;
+            const actualNegatives = fp + tn;
+
+            const tpr = actualPositives === 0 ? 0 : tp / actualPositives; // Sensitivity / Recall
+            const fpr = actualNegatives === 0 ? 0 : fp / actualNegatives; // 1 - Specificity
+
+            // Area under a curve with points (0,0) -> (FPR, TPR) -> (1,1)
+            // Using the trapezoidal rule simplified:
+            const auc = 0.5 * (1 + tpr - fpr);
+
+            return { tpr, fpr, auc };
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('rocChart').getContext('2d');
+            
+            rocChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Model A',
+                            data: [],
+                            borderColor: '#2563eb', // blue-600
+                            backgroundColor: '#2563eb',
+                            borderWidth: 3,
+                            showLine: true,
+                            tension: 0, // straight lines
+                            pointRadius: [4, 6, 4],
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Model B',
+                            data: [],
+                            borderColor: '#f97316', // orange-500
+                            backgroundColor: '#f97316',
+                            borderWidth: 3,
+                            showLine: true,
+                            tension: 0,
+                            pointRadius: [4, 6, 4],
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Random Guess (AUC 0.5)',
+                            data: [{x: 0, y: 0}, {x: 1, y: 1}],
+                            borderColor: '#9ca3af', // gray-400
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            showLine: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: { family: "'Inter', sans-serif" }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.datasetIndex === 2) return 'Random Guess';
+                                    return `${context.dataset.label} (FPR: ${context.parsed.x.toFixed(2)}, TPR: ${context.parsed.y.toFixed(2)})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'False Positive Rate (FPR)',
+                                font: { family: "'Inter', sans-serif", weight: 'bold' }
+                            },
+                            grid: { color: '#f3f4f6' }
+                        },
+                        y: {
+                            min: 0,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'True Positive Rate (TPR)',
+                                font: { family: "'Inter', sans-serif", weight: 'bold' }
+                            },
+                            grid: { color: '#f3f4f6' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAll() {
+            // Read inputs
+            const tpA = parseInt(inputs.A.tp.value) || 0;
+            const fnA = parseInt(inputs.A.fn.value) || 0;
+            const fpA = parseInt(inputs.A.fp.value) || 0;
+            const tnA = parseInt(inputs.A.tn.value) || 0;
+
+            const tpB = parseInt(inputs.B.tp.value) || 0;
+            const fnB = parseInt(inputs.B.fn.value) || 0;
+            const fpB = parseInt(inputs.B.fp.value) || 0;
+            const tnB = parseInt(inputs.B.tn.value) || 0;
+
+            // Calculate metrics
+            const metricsA = calculateMetrics(tpA, fnA, fpA, tnA);
+            const metricsB = calculateMetrics(tpB, fnB, fpB, tnB);
+
+            // Update UI text
+            displays.A.auc.textContent = metricsA.auc.toFixed(3);
+            displays.A.tpr.textContent = `TPR: ${metricsA.tpr.toFixed(2)}`;
+            displays.A.fpr.textContent = `FPR: ${metricsA.fpr.toFixed(2)}`;
+
+            displays.B.auc.textContent = metricsB.auc.toFixed(3);
+            displays.B.tpr.textContent = `TPR: ${metricsB.tpr.toFixed(2)}`;
+            displays.B.fpr.textContent = `FPR: ${metricsB.fpr.toFixed(2)}`;
+
+            // Update Chart Data
+            // Format: (0,0) -> (FPR, TPR) -> (1,1)
+            rocChart.data.datasets[0].data = [
+                {x: 0, y: 0},
+                {x: metricsA.fpr, y: metricsA.tpr},
+                {x: 1, y: 1}
+            ];
+
+            rocChart.data.datasets[1].data = [
+                {x: 0, y: 0},
+                {x: metricsB.fpr, y: metricsB.tpr},
+                {x: 1, y: 1}
+            ];
+
+            rocChart.update();
+        }
+
+        // Attach listeners
+        ['A', 'B'].forEach(model => {
+            ['tp', 'fn', 'fp', 'tn'].forEach(metric => {
+                inputs[model][metric].addEventListener('input', updateAll);
+            });
+        });
+
+        // Initialize everything on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            updateAll();
+        });
+
+    </script>
+</body>
+</html>
